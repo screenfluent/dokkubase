@@ -10,8 +10,13 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^4.12.2",
     "@astrojs/check": "^0.8.3",
+    "@astrojs/netlify": "^5.4.0",
+    "@astrojs/tailwind": "^5.1.0",
+    "astro": "^4.12.2",
+    "firebase": "^10.12.4",
+    "sweetalert2": "^11.12.3",
+    "tailwindcss": "^3.4.7",
     "typescript": "^5.5.4"
   }
 }
