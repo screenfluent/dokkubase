@@ -46,3 +46,58 @@ All commands are run from the root of the project, from a terminal:
 ## 👀 Want to learn more?
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+
+## 🤖 AI Assistant Instructions
+
+When working with this codebase, please follow these guidelines:
+
+### Astro Actions and TypeScript
+
+1. **Imports**: Always use these exact imports for actions and middleware:
+```typescript
+// For actions
+import { defineAction } from 'astro:actions';
+import type { APIContext } from 'astro';
+
+// For middleware
+import { defineMiddleware } from 'astro:middleware';
+import type { MiddlewareHandler, APIContext } from 'astro';
+```
+
+2. **Type Declarations**: Do not modify `src/env.d.ts`. It already has correct module declarations:
+```typescript
+declare module 'astro:middleware' {
+    export { defineMiddleware, MiddlewareResponseHandler } from 'astro';
+}
+
+declare module 'astro:actions' {
+    export { defineAction } from 'astro';
+}
+```
+
+3. **Action Types**: Always use these type patterns:
+```typescript
+defineAction({
+    accept: 'form',
+    input: z.object({ /* your schema */ }),
+    handler: async (input: YourInputType, context: APIContext) => {
+        // your code
+    }
+});
+```
+
+4. **Middleware Types**: Always use this pattern:
+```typescript
+export const onRequest: MiddlewareHandler = defineMiddleware(
+    async (context: APIContext, next: () => Promise<Response>) => {
+        // your code
+    }
+);
+```
+
+5. **DO NOT**:
+- Add `astro-*` or `@astrojs/*` imports for core functionality
+- Modify existing type declarations
+- Use any other patterns for actions/middleware
+
+Follow these patterns exactly to maintain type safety and prevent import errors.
