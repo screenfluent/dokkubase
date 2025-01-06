@@ -19,7 +19,7 @@ export class DB {
         this.initTables();
     }
 
-    // Singleton pattern - zawsze mamy jedną instancję bazy
+    // Singleton pattern - always return the same instance
     public static getInstance(): DB {
         if (!DB.instance) {
             DB.instance = new DB();
@@ -37,11 +37,11 @@ export class DB {
             )
         `);
         
-        // Tu możemy dodawać więcej tabel w przyszłości
+        // More tables can be added here in the future
     }
 
-    // Generic query methods
-    public prepare<T = any>(sql: string) {
+    // Generic query methods with proper typing
+    public prepare<T = unknown>(sql: string): Database.Statement<T> {
         return this.db.prepare(sql);
     }
 
@@ -49,8 +49,8 @@ export class DB {
         this.db.exec(sql);
     }
 
-    // Session methods - możemy je później przenieść do osobnego modułu jak urośnie aplikacja
-    public getSession(id: string): any {
+    // Session methods - can be moved to a separate module when the app grows
+    public getSession<T = unknown>(id: string): T | null {
         const row = this.db.prepare<[string, number]>(
             'SELECT data FROM sessions WHERE id = ? AND expires_at > ?'
         ).get(id, Date.now()) as { data: string } | undefined;
@@ -58,7 +58,7 @@ export class DB {
         return row ? JSON.parse(row.data) : null;
     }
 
-    public setSession(id: string, data: any, expiresIn: number = 24 * 60 * 60 * 1000): void {
+    public setSession<T = unknown>(id: string, data: T, expiresIn: number = 24 * 60 * 60 * 1000): void {
         const expiresAt = Date.now() + expiresIn;
         
         this.db.prepare(`
@@ -71,7 +71,7 @@ export class DB {
         this.db.prepare('DELETE FROM sessions WHERE id = ?').run(id);
     }
 
-    public cleanupSessions(): void {
+    public cleanupSessions(): { deletedCount: number } {
         const deleted = this.db.prepare(
             'DELETE FROM sessions WHERE expires_at <= ?'
         ).run(Date.now());
@@ -79,5 +79,7 @@ export class DB {
         if (deleted.changes > 0) {
             console.log(`DB: Cleaned up ${deleted.changes} expired sessions`);
         }
+
+        return { deletedCount: deleted.changes };
     }
 } 

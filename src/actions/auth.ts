@@ -14,7 +14,6 @@ import type { AstroCookies } from 'astro';
 
 // Auth constants
 export const COOKIE_NAME = 'sid' as const;
-const COOKIE_OPTIONS = 'Path=/; HttpOnly; SameSite=Strict; Max-Age=86400';
 
 // Types
 export interface CookieOptions {
