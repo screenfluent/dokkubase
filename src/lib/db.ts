@@ -41,7 +41,7 @@ export class DB {
     }
 
     // Generic query methods with proper typing
-    public prepare<T = unknown>(sql: string): Database.Statement<T> {
+    public prepare<TParams extends any[] = any[]>(sql: string): Database.Statement<TParams> {
         return this.db.prepare(sql);
     }
 
