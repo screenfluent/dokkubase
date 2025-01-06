@@ -3,8 +3,11 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@layouts/*": ["src/layouts/*"],
-    }
-  }
+      "@/*": ["src/*"]
+    },
+    "types": ["astro/client"],
+    "jsx": "preserve"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
