@@ -1,14 +1,10 @@
-export type User = {
-    username: string;
-    isLoggedIn: boolean;
-} | null;
-
-export type AppLocals = {
-    user: User;
-    getUser: () => User;
-    logout: () => void;
-};
-
 declare namespace App {
-    interface Locals extends AppLocals {}
+    interface Locals {
+        user: {
+            username: string;
+            isLoggedIn: boolean;
+        } | null;
+        getUser: () => Locals['user'];
+        logout: () => void;
+    }
 } 
