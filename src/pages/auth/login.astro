@@ -1,0 +1,21 @@
+---
+import { actions } from "astro:actions";
+import Layout from '@/layouts/Layout.astro';
+import LoginForm from '@/components/auth/LoginForm.astro';
+
+let message = '';
+let messageType: 'error' | 'success' = 'error';
+
+const result = Astro.getActionResult(actions.auth.login);
+if (result?.data?.success) {
+    return Astro.redirect('/dashboard');
+} else if (result?.error) {
+    message = result.error.message;
+    messageType = 'error';
+}
+---
+
+<Layout title="Login">
+    <h1>Login</h1>
+    <LoginForm message={message} messageType={messageType} />
+</Layout>

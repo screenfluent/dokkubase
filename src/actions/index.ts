@@ -1,6 +1,6 @@
 import { auth } from '@/actions/auth';
 
-// Export all actions in a server object
+// Export server object for Astro
 export const server = {
     auth
 }; 

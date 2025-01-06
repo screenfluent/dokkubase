@@ -9,10 +9,34 @@ import { z } from 'zod';
 
 // Internal imports
 import { DB } from '@/lib/db';
+import type { AstroCookies } from 'astro';
 
 // Auth constants
-export const COOKIE_NAME = 'sid';
+export const COOKIE_NAME = 'sid' as const;
 const COOKIE_OPTIONS = 'Path=/; HttpOnly; SameSite=Strict; Max-Age=86400';
+
+// Types
+export interface CookieOptions {
+    httpOnly?: boolean;
+    path?: string;
+    sameSite?: string;
+    maxAge?: number;
+}
+
+export interface CookieToSet {
+    value: string;
+    options: CookieOptions;
+}
+
+export interface CookiesToSet {
+    [COOKIE_NAME]: CookieToSet;
+}
+
+export function setAuthCookiesFromResponse(cookies: CookiesToSet, astroCookies: AstroCookies) {
+    Object.entries(cookies).forEach(([name, { value, options }]) => {
+        astroCookies.set(name, value, options);
+    });
+}
 
 export interface User {
     username: string;
@@ -84,7 +108,18 @@ export const auth = {
             
             return {
                 success: true,
-                message: 'Logged out successfully'
+                message: 'Logged out successfully',
+                cookiesToSet: {
+                    [COOKIE_NAME]: {
+                        value: '',
+                        options: {
+                            httpOnly: true,
+                            path: '/',
+                            sameSite: 'strict',
+                            maxAge: 0
+                        }
+                    }
+                }
             };
         }
     })

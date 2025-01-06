@@ -24,13 +24,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     // Redirect logged-in users from login page to dashboard
-    if (user?.isLoggedIn && context.url.pathname === '/login') {
+    if (user?.isLoggedIn && context.url.pathname === '/auth/login') {
         return context.redirect('/dashboard');
     }
 
     // Redirect non-logged-in users from protected routes to login
     if (!user?.isLoggedIn && context.url.pathname === '/dashboard') {
-        return context.redirect('/login');
+        return context.redirect('/auth/login');
     }
 
     // Add user to locals so it's available in components

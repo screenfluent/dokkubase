@@ -1,0 +1,33 @@
+---
+import { actions } from "astro:actions";
+
+interface Props {
+    message?: string;
+    messageType?: 'error' | 'success';
+}
+
+const { message, messageType = 'error' } = Astro.props;
+---
+
+<form method="POST" action={actions.auth.login}>
+    <div>
+        <label for="username">Username:</label><br/>
+        <input type="text" id="username" name="username" required>
+    </div>
+    
+    <div>
+        <label for="password">Password:</label><br/>
+        <input type="password" id="password" name="password" required>
+    </div>
+    
+    <div>
+        <button type="submit">Login</button>
+    </div>
+
+    {message && <p class={messageType}>{message}</p>}
+</form>
+
+<style>
+    .error { color: red; }
+    .success { color: green; }
+</style> 
