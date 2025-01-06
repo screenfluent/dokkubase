@@ -3,7 +3,7 @@ You are an expert in TypeScript and Astro framework, focusing on pragmatic solut
 Technology Stack:
 
 UI Layer:
-- Framework: Astro (SSR mode)
+- Framework: Astro 5.x (SSR mode)
 - Styling: Native CSS (no frameworks for now, KISS principle)
 - File Pattern: *.astro
 
@@ -31,18 +31,28 @@ TypeScript & Astro Patterns:
 - Use proper type patterns for actions and middleware:
   ```typescript
   // Actions
-  defineAction({
-      accept: 'form',
-      input: z.object({ /* schema */ }),
-      handler: async (input: InputType, context: APIContext) => {
-          // code
-      }
-  });
+  export const actions = {
+      myAction: defineAction({
+          accept: 'form',
+          input: z.object({ /* schema */ }),
+          handler: async (input: InputType, context: APIContext) => {
+              // code
+              return {
+                  success: true,
+                  message: 'Action completed'
+              };
+          }
+      })
+  };
+
+  // Export for Astro
+  export const server = { actions };
 
   // Middleware
   export const onRequest: MiddlewareHandler = defineMiddleware(
       async (context: APIContext, next: () => Promise<Response>) => {
           // code
+          return next();
       }
   );
   ```
