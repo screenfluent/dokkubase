@@ -25,5 +25,8 @@ pnpm-debug.log*
 .idea/
 
 # SQLite database
-data/sessions.db
-sessions.db
+data/*.db
+data/*.db-journal
+
+# Keep data directory but ignore contents
+!data/.gitkeep

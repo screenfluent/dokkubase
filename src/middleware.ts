@@ -1,26 +1,35 @@
 import { defineMiddleware } from "astro:middleware";
+import { DB } from "@/lib/db";
+import { COOKIE_NAME } from "@/lib/constants";
+import type { User } from "@/actions/auth";
 
 // Simple auth middleware - MVP prototype
 export const onRequest = defineMiddleware(async (context, next) => {
     console.log('Middleware: Processing request to', context.url.pathname);
 
-    if (!context.session) {
-        throw new Error('Session not available');
+    // Get session from cookie
+    const sessionId = context.cookies.get(COOKIE_NAME)?.value;
+    
+    // Get user data from DB if session exists
+    let user: User | null = null;
+    if (sessionId) {
+        const db = DB.getInstance();
+        user = db.getSession(sessionId);
+        console.log('Middleware: User from session:', user);
     }
 
-    // Load user from session
-    const user = await context.session.get('user');
-    console.log('Middleware: User from session:', user);
-
-    // Skip auth check for login page
-    if (context.url.pathname === '/login') {
-        return next();
+    // Redirect logged-in users from login page to dashboard
+    if (user?.isLoggedIn && context.url.pathname === '/login') {
+        return context.redirect('/dashboard');
     }
 
-    // Check if user is logged in
+    // Redirect non-logged-in users from protected routes to login
     if (!user?.isLoggedIn && context.url.pathname === '/dashboard') {
         return context.redirect('/login');
     }
+
+    // Add user to locals so it's available in components
+    context.locals.user = user;
 
     return next();
 }); 

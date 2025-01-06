@@ -1,5 +1,13 @@
 import { defineAction } from 'astro:actions';
 import { z } from 'zod';
+import { DB } from '@/lib/db';
+import crypto from 'crypto';
+import { COOKIE_NAME } from '@/lib/constants';
+
+export interface User {
+    username: string;
+    isLoggedIn: boolean;
+}
 
 export const login = defineAction({
     accept: 'form',
@@ -12,22 +20,27 @@ export const login = defineAction({
 
         // Simple hardcoded auth for prototype
         if (username === 'admin' && password === 'admin123') {
-            console.log('Login successful, regenerating session');
+            console.log('Login successful, creating session');
             
-            if (!context.session) {
-                throw new Error('Session not available');
-            }
-
-            // Regenerate session to prevent session fixation
-            await context.session.regenerate();
-
-            // Store user data in session
-            await context.session.set('user', {
+            // Generate session ID
+            const sessionId = crypto.randomBytes(32).toString('hex');
+            
+            // Store session in DB
+            const db = DB.getInstance();
+            db.setSession(sessionId, {
                 username: 'admin',
                 isLoggedIn: true
+            } as User);
+
+            // Set cookie
+            context.cookies.set(COOKIE_NAME, sessionId, { 
+                httpOnly: true,
+                path: '/',
+                sameSite: 'strict',
+                maxAge: 86400 // 24h
             });
 
-            console.log('Session regenerated and user data stored');
+            console.log('Session created and stored in DB');
 
             return {
                 success: true,
@@ -38,6 +51,29 @@ export const login = defineAction({
         return {
             success: false,
             message: 'Invalid credentials'
+        };
+    }
+});
+
+export const logout = defineAction({
+    accept: 'form',
+    handler: async (_, context) => {
+        const sessionId = context.cookies.get(COOKIE_NAME)?.value;
+        
+        if (sessionId) {
+            // Clear session from DB
+            const db = DB.getInstance();
+            db.deleteSession(sessionId);
+            
+            // Clear cookie
+            context.cookies.delete(COOKIE_NAME);
+            
+            console.log('Session cleared');
+        }
+        
+        return {
+            success: true,
+            message: 'Logged out successfully'
         };
     }
 }); 

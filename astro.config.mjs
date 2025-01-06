@@ -6,15 +6,6 @@ import node from '@astrojs/node';
 export default defineConfig({
   output: 'server',  // Enable SSR mode
   adapter: node({ mode: 'standalone' }),
-  experimental: {
-    session: {
-      driver: "fs",
-      cookie: {
-        name: "dokkubase-session",
-        sameSite: "strict"
-      }
-    }
-  },
   vite: {
     resolve: {
       alias: {
