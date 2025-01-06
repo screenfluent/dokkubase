@@ -1,8 +1,18 @@
+// Framework
 import { defineAction } from 'astro:actions';
-import { z } from 'zod';
-import { DB } from '@/lib/db';
+
+// Node built-ins
 import crypto from 'crypto';
-import { COOKIE_NAME } from '@/lib/constants';
+
+// External libraries
+import { z } from 'zod';
+
+// Internal imports
+import { DB } from '@/lib/db';
+
+// Auth constants
+export const COOKIE_NAME = 'sid';
+const COOKIE_OPTIONS = 'Path=/; HttpOnly; SameSite=Strict; Max-Age=86400';
 
 export interface User {
     username: string;

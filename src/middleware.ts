@@ -1,6 +1,11 @@
+// Framework
 import { defineMiddleware } from "astro:middleware";
+
+// Internal imports
 import { DB } from "@/lib/db";
-import { COOKIE_NAME } from "@/lib/constants";
+import { COOKIE_NAME } from "@/actions/auth";
+
+// Types
 import type { User } from "@/actions/auth";
 
 // Simple auth middleware - MVP prototype
