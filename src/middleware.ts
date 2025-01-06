@@ -4,8 +4,12 @@ import { defineMiddleware } from "astro:middleware";
 export const onRequest = defineMiddleware(async (context, next) => {
     console.log('Middleware: Processing request to', context.url.pathname);
 
+    if (!context.session) {
+        throw new Error('Session not available');
+    }
+
     // Load user from session
-    const user = await context.session?.get('user');
+    const user = await context.session.get('user');
     console.log('Middleware: User from session:', user);
 
     // Skip auth check for login page
