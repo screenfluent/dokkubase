@@ -1,9 +1,19 @@
 ---
-import MainLayout from "@layouts/MainLayout.astro";
-
-
+import TestAlias from '@/components/TestAlias.astro';
 ---
 
-<MainLayout>
-	<h1 class="text-3xl">Home Page</h1>
-</MainLayout>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Test Aliases</title>
+</head>
+<body>
+    <h1>Testing @ Aliases</h1>
+    
+    <TestAlias />
+    
+    <div>
+        <a href="/login">Go to Login</a>
+    </div>
+</body>
+</html>

@@ -1,4 +1,4 @@
-type User = {
+export type User = {
     username: string;
     isLoggedIn: boolean;
 } | null;
