@@ -2,6 +2,7 @@ import { defineAction } from 'astro:actions';
 import { z } from 'zod';
 
 export const login = defineAction({
+    accept: 'form',
     input: z.object({
         username: z.string(),
         password: z.string()
