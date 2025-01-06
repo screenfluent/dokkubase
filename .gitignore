@@ -26,3 +26,4 @@ pnpm-debug.log*
 
 # SQLite database
 data/sessions.db
+sessions.db

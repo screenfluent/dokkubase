@@ -1,7 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import node from '@astrojs/node';
-import { SQLiteSessionDriver } from './src/lib/sqlite-driver';
 
 // https://astro.build/config
 export default defineConfig({
@@ -9,7 +8,11 @@ export default defineConfig({
   adapter: node({ mode: 'standalone' }),
   experimental: {
     session: {
-      driver: new SQLiteSessionDriver()
+      driver: "fs",
+      cookie: {
+        name: "dokkubase-session",
+        sameSite: "strict"
+      }
     }
   },
   vite: {
