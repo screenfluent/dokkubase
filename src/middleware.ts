@@ -23,7 +23,7 @@ export const onRequest = defineMiddleware((context, next) => {
     // Check if user is logged in
     const user = context.locals.getUser();
     if (!user?.isLoggedIn && context.url.pathname === '/dashboard') {
-        return context.redirect('/login');
+        return next('/login');
     }
 
     return next();
