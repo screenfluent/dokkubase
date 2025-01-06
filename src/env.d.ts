@@ -3,10 +3,12 @@ export type User = {
     isLoggedIn: boolean;
 } | null;
 
+export type AppLocals = {
+    user: User;
+    getUser: () => User;
+    logout: () => void;
+};
+
 declare namespace App {
-    interface Locals {
-        user: User;
-        getUser: () => User;
-        logout: () => void;
-    }
+    interface Locals extends AppLocals {}
 } 
