@@ -2,14 +2,23 @@ import { defineMiddleware } from "astro:middleware";
 
 // Simple auth middleware - MVP prototype
 export const onRequest = defineMiddleware(async (context, next) => {
+    // Check if sessions are configured
+    if (!context.session) {
+        throw new Error('Sessions are not configured');
+    }
+
+    // Store session reference for later use
+    const session = context.session;
+
     // Load user from session
-    context.locals.user = await context.session.get('user');
+    const sessionUser = await session.get('user');
+    context.locals.user = sessionUser || null;
 
     // Initialize user methods
     context.locals.getUser = function() { return context.locals.user; };
     context.locals.logout = async function() { 
         context.locals.user = null;
-        await context.session.destroy();
+        await session.destroy();
     };
 
     // Skip auth check for login page and public routes
