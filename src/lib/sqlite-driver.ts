@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import path from 'path';
 
 interface SessionDriver {
     get(key: string): Promise<any>;
@@ -15,7 +16,11 @@ export class SQLiteSessionDriver implements SessionDriver {
     private db: Database.Database;
 
     constructor() {
-        this.db = new Database('sessions.db');
+        // Use data directory for database
+        const dbPath = path.join(process.cwd(), 'data', 'sessions.db');
+        console.log('SQLite Driver: Using database at', dbPath);
+        
+        this.db = new Database(dbPath);
         
         // Create sessions table if it doesn't exist
         this.db.exec(`
