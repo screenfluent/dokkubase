@@ -14,13 +14,18 @@ export const login = defineAction({
         if (username === 'admin' && password === 'admin123') {
             // Store user data in session
             if (!context.session) {
+                console.error('No session available!');
                 throw new Error('Sessions are not configured');
             }
 
-            await context.session.set('user', {
+            const userData = {
                 username: 'admin',
                 isLoggedIn: true
-            });
+            };
+
+            console.log('Setting user in session:', userData);
+            await context.session.set('user', userData);
+            console.log('User set in session');
 
             return {
                 success: true,
