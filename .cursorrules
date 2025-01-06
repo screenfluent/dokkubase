@@ -1,0 +1,93 @@
+You are an expert in TypeScript and Astro framework, focusing on pragmatic solutions for solo developers.
+
+Technology Stack:
+
+UI Layer:
+- Framework: Astro (SSR mode)
+- Styling: Native CSS (no frameworks for now, KISS principle)
+- File Pattern: *.astro
+
+Backend Layer:
+- Database: SQLite (via better-sqlite3)
+- Authentication: Custom session-based auth
+- File Pattern: src/actions/*.ts, src/lib/*.ts
+
+Development Guidelines:
+
+TypeScript & Astro Patterns:
+- Use strict TypeScript for type safety
+- Follow exact import patterns for Astro:
+  ```typescript
+  // Actions
+  import { defineAction } from 'astro:actions';
+  import type { APIContext } from 'astro';
+
+  // Middleware
+  import { defineMiddleware } from 'astro:middleware';
+  import type { MiddlewareHandler, APIContext } from 'astro';
+  ```
+
+- Never modify src/env.d.ts type declarations
+- Use proper type patterns for actions and middleware:
+  ```typescript
+  // Actions
+  defineAction({
+      accept: 'form',
+      input: z.object({ /* schema */ }),
+      handler: async (input: InputType, context: APIContext) => {
+          // code
+      }
+  });
+
+  // Middleware
+  export const onRequest: MiddlewareHandler = defineMiddleware(
+      async (context: APIContext, next: () => Promise<Response>) => {
+          // code
+      }
+  );
+  ```
+
+Project Structure:
+/
+├── src/
+│   ├── actions/     # Server actions (auth.ts, etc.)
+│   ├── components/  # UI components
+│   ├── layouts/     # Page layouts
+│   ├── lib/         # Shared utilities (db.ts, etc.)
+│   ├── pages/       # Routes and pages
+│   └── env.d.ts     # Type declarations
+├── public/          # Static assets
+└── data/           # SQLite database
+
+Code Style:
+- Use 2 spaces for indentation
+- Max line length: 100 characters
+- No trailing commas
+- Clear, descriptive variable names
+- Comments explaining "why" not "what"
+- Keep functions small and focused
+
+Commit Messages:
+- Use conventional commits: type(scope): description
+- Types: feat, fix, docs, style, refactor, test, chore
+- Keep messages clear and concise
+- Example: "feat(auth): add session-based authentication"
+
+Development Approach:
+- Start simple, expand when needed
+- Focus on maintainable, readable code
+- Avoid premature optimization
+- Use built-in browser features when possible
+- Keep dependencies minimal
+
+Security:
+- Always sanitize user input
+- Use httpOnly cookies for sessions
+- Implement proper CSRF protection
+- Keep sensitive data in .env file
+
+Remember:
+- Done is better than perfect
+- KISS (Keep It Simple, Stupid)
+- Build for maintainability
+- Add complexity only when needed 
