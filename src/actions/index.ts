@@ -1,11 +1,8 @@
-import { loginUser, loginWithGoogle, logout, registerUser } from "./auth";
+import { login } from './auth';
 
+// Export all actions in a server object
 export const server = {
-    //actions
-
-    //? Authentication
-    registerUser,
-    loginUser,
-    loginWithGoogle,
-    logout,
-};
+    auth: {
+        login
+    }
+}; 
