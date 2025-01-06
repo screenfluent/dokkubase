@@ -1,5 +1,22 @@
 ---
 // Simple dashboard page - MVP prototype without any styling
+import { server } from '@/actions';
+
+// Get user from middleware
+const user = Astro.locals.user;
+
+// Handle logout if form was submitted
+if (Astro.request.method === 'POST') {
+    const result = await Astro.callAction(server.auth.logout, new FormData());
+    if (result?.data?.success) {
+        return Astro.redirect('/login');
+    }
+}
+
+// Redirect to login if no user (shouldn't happen due to middleware, but TypeScript doesn't know that)
+if (!user) {
+    return Astro.redirect('/login');
+}
 ---
 
 <html lang="en">
@@ -10,10 +27,12 @@
 <body>
     <h1>Dashboard</h1>
     
-    <p>Logged in as: admin</p>
+    <p>Logged in as: {user.username}</p>
     
     <div>
-        <a href="/login">Logout</a>
+        <form method="POST">
+            <button type="submit">Logout</button>
+        </form>
     </div>
 
     <div>

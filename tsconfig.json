@@ -5,7 +5,7 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["astro/client"],
+    "types": ["astro/client", "astro/actions"],
     "jsx": "preserve"
   },
   "include": ["src/**/*"],
