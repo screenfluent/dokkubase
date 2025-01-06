@@ -1,50 +1,31 @@
 import { defineAction } from 'astro:actions';
 import { z } from 'zod';
 
-// Define error types
-const LoginError = {
-  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
-  SERVER_ERROR: 'SERVER_ERROR'
-} as const;
-
-// Simple login action that checks against hardcoded credentials
 export const login = defineAction({
-  accept: 'form',
-  input: z.object({
-    username: z.string().min(1, 'Username is required'),
-    password: z.string().min(1, 'Password is required'),
-  }),
-  async handler({ username, password }) {
-    try {
-      // Hardcoded credentials for prototype
-      const VALID_USERNAME = 'admin';
-      const VALID_PASSWORD = 'admin123';
+    input: z.object({
+        username: z.string(),
+        password: z.string()
+    }),
+    handler: async (input, context) => {
+        const { username, password } = input;
 
-      if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+        // Simple hardcoded auth for prototype
+        if (username === 'admin' && password === 'admin123') {
+            // Store user data in session
+            await context.session.set('user', {
+                username: 'admin',
+                isLoggedIn: true
+            });
+
+            return {
+                success: true,
+                message: 'Login successful'
+            };
+        }
+
         return {
-          success: true,
-          data: {
-            username,
-            message: 'Login successful'
-          }
+            success: false,
+            message: 'Invalid credentials'
         };
-      }
-
-      return {
-        success: false,
-        error: {
-          code: LoginError.INVALID_CREDENTIALS,
-          message: 'Invalid credentials'
-        }
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: {
-          code: LoginError.SERVER_ERROR,
-          message: 'Something went wrong. Please try again.'
-        }
-      };
     }
-  },
 }); 
