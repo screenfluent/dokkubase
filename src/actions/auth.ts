@@ -1,5 +1,6 @@
 // Framework
 import { defineAction } from 'astro:actions';
+import type { APIContext } from 'astro';
 
 // Node built-ins
 import crypto from 'crypto';
@@ -50,7 +51,7 @@ export const auth = {
             username: z.string(),
             password: z.string()
         }),
-        handler: async (input, context) => {
+        handler: async (input: { username: string; password: string }, context: APIContext) => {
             const { username, password } = input;
 
             // Simple hardcoded auth for prototype
@@ -92,7 +93,7 @@ export const auth = {
 
     logout: defineAction({
         accept: 'form',
-        handler: async (_, context) => {
+        handler: async (_: unknown, context: APIContext) => {
             const sessionId = context.cookies.get(COOKIE_NAME)?.value;
             
             if (sessionId) {

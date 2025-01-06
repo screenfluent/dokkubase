@@ -1,5 +1,6 @@
 // Framework
 import { defineMiddleware } from "astro:middleware";
+import type { MiddlewareHandler, APIContext } from "astro";
 
 // Internal imports
 import { DB } from "@/lib/db";
@@ -9,7 +10,7 @@ import { COOKIE_NAME } from "@/actions/auth";
 import type { User } from "@/actions/auth";
 
 // Simple auth middleware - MVP prototype
-export const onRequest = defineMiddleware(async (context, next) => {
+export const onRequest: MiddlewareHandler = defineMiddleware(async (context: APIContext, next: () => Promise<Response>) => {
     console.log('Middleware: Processing request to', context.url.pathname);
 
     // Get session from cookie
