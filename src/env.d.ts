@@ -21,11 +21,36 @@ interface ImportMeta {
 }
 
 declare namespace App {
+    // User & Auth types
+    interface User {
+        username: string;
+        isLoggedIn: boolean;
+    }
+
+    interface CookieOptions {
+        httpOnly?: boolean;
+        path?: string;
+        sameSite?: 'strict' | 'lax' | 'none';
+        maxAge?: number;
+        secure?: boolean;
+    }
+
+    // Security types
+    interface SecurityConfig {
+        csrf: {
+            cookie: CookieOptions;
+            headerName: string;
+            tokenLength: number;
+        };
+        rateLimit: {
+            maxAttempts: number;
+            windowMs: number;
+        };
+    }
+
+    // Locals for middleware
     interface Locals {
-        user: {
-            username: string;
-            isLoggedIn: boolean;
-        } | null;
+        user: User | null;
         loginError?: {
             message?: string;
             remainingAttempts: number;

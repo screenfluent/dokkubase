@@ -3,6 +3,8 @@
 // - Resets after 1 minute
 // - Max 5 attempts per minute
 
+import { logger } from './logger';
+
 const attempts = new Map<string, { count: number; firstAttempt: number }>();
 
 export class RateLimit {
@@ -19,7 +21,7 @@ export class RateLimit {
         }
         
         if (cleaned > 0) {
-            console.log(`Rate limit: Cleaned up ${cleaned} old entries`);
+            logger.security('Rate limit cleanup', { cleanedEntries: cleaned });
         }
     }
 
@@ -30,27 +32,35 @@ export class RateLimit {
 
         // First attempt for this IP
         if (!data) {
-            console.log(`Rate limit: First attempt from ${ip}`);
+            logger.security('First login attempt', { ip });
             attempts.set(ip, { count: 1, firstAttempt: now });
             return true;
         }
 
         // Reset after 1 minute
         if (now - data.firstAttempt > 60 * 1000) {
-            console.log(`Rate limit: Reset counter for ${ip}`);
+            logger.security('Rate limit reset', { ip, previousAttempts: data.count });
             attempts.set(ip, { count: 1, firstAttempt: now });
             return true;
         }
 
         // Too many attempts
         if (data.count >= 5) {
-            console.log(`Rate limit: Too many attempts from ${ip} (${data.count})`);
+            logger.security('Rate limit exceeded', { 
+                ip, 
+                attempts: data.count,
+                firstAttempt: new Date(data.firstAttempt).toISOString()
+            });
             return false;
         }
 
         // Increment counter
         data.count++;
-        console.log(`Rate limit: Attempt ${data.count}/5 from ${ip}`);
+        logger.security('Login attempt counted', { 
+            ip, 
+            currentAttempts: data.count,
+            maxAttempts: 5
+        });
         return true;
     }
 

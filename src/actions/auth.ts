@@ -1,6 +1,7 @@
 // Framework
 import { defineAction } from 'astro:actions';
 import type { APIContext } from 'astro';
+import type { AstroCookies } from 'astro';
 
 // Node built-ins
 import crypto from 'crypto';
@@ -11,93 +12,100 @@ import { z } from 'zod';
 // Internal imports
 import { DB } from '@/lib/db';
 import { CSRF } from '@/lib/security';
-import type { AstroCookies } from 'astro';
+import { logger } from '../lib/security';
 
 // Auth constants
 export const COOKIE_NAME = 'sid' as const;
 
-// Types
-export interface CookieOptions {
-    httpOnly?: boolean;
-    path?: string;
-    sameSite?: string;
-    maxAge?: number;
-}
-
-export interface CookieToSet {
+// Cookie helper types
+interface CookieToSet {
     value: string;
-    options: CookieOptions;
+    options: App.CookieOptions;
 }
 
-export interface CookiesToSet {
+interface CookiesToSet {
     [COOKIE_NAME]: CookieToSet;
 }
 
+// Cookie helper function
 export function setAuthCookiesFromResponse(cookies: CookiesToSet, astroCookies: AstroCookies) {
     Object.entries(cookies).forEach(([name, { value, options }]) => {
         astroCookies.set(name, value, options);
     });
 }
 
-export interface User {
-    username: string;
-    isLoggedIn: boolean;
-}
+// Login schema
+const loginSchema = z.object({
+    username: z.string().min(1),
+    password: z.string().min(1),
+    _csrf: z.string()
+});
 
 export const auth = {
     login: defineAction({
         accept: 'form',
-        input: z.object({
-            username: z.string(),
-            password: z.string(),
-            _csrf: z.string()
-        }),
-        handler: async (input: { username: string; password: string; _csrf: string }, context: APIContext) => {
+        input: loginSchema,
+        handler: async (input: z.infer<typeof loginSchema>, context: APIContext) => {
+            const ip = context.request.headers.get('x-forwarded-for') || 'unknown';
+            
             // Validate CSRF token
-            const storedToken = context.cookies.get(CSRF.getConfig().cookie.name)?.value || null;
-            if (!CSRF.validateToken(input._csrf, storedToken)) {
+            const storedToken = context.cookies.get(CSRF.getConfig().cookie.name)?.value;
+            if (!storedToken || !CSRF.validateToken(input._csrf, storedToken)) {
+                logger.security('Invalid CSRF token', { ip });
                 return {
                     success: false,
-                    message: 'Invalid security token. Please try again.'
+                    error: 'Invalid security token'
                 };
             }
+            
+            logger.auth('Login attempt', { ip, username: input.username });
 
-            const { username, password } = input;
+            try {
+                // Validate credentials (hardcoded for now)
+                if (input.username !== 'admin' || input.password !== 'admin123') {
+                    logger.auth('Login failed', { ip, username: input.username, reason: 'Invalid credentials' });
+                    return {
+                        success: false,
+                        error: 'Invalid username or password'
+                    };
+                }
 
-            // Simple hardcoded auth for prototype
-            if (username === 'admin' && password === 'admin123') {
-                console.log('Login successful, creating session');
-                
                 // Generate session ID
                 const sessionId = crypto.randomBytes(32).toString('hex');
                 
-                // Store session in DB
+                // Store session
                 const db = DB.getInstance();
                 db.setSession(sessionId, {
-                    username: 'admin',
+                    username: input.username,
                     isLoggedIn: true
-                } as User);
+                } satisfies App.User);
 
                 // Set cookie
-                context.cookies.set(COOKIE_NAME, sessionId, { 
+                context.cookies.set(COOKIE_NAME, sessionId, {
                     httpOnly: true,
                     path: '/',
                     sameSite: 'strict',
                     maxAge: 7 * 24 * 60 * 60 // 7 days
-                });
+                } satisfies App.CookieOptions);
 
-                console.log('Session created and stored in DB');
+                logger.auth('Login successful', { ip, username: input.username, sessionId });
 
                 return {
                     success: true,
-                    message: 'Login successful'
+                    redirect: '/'
+                };
+            } catch (err) {
+                logger.error('Login error', { 
+                    ip, 
+                    username: input.username,
+                    error: err instanceof Error ? err.message : 'Unknown error'
+                });
+                
+                return {
+                    success: false,
+                    error: 'An error occurred during login'
                 };
             }
-
-            return {
-                success: false,
-                message: 'Invalid credentials'
-            };
         }
     }),
 
@@ -105,6 +113,7 @@ export const auth = {
         accept: 'form',
         handler: async (_: unknown, context: APIContext) => {
             const sessionId = context.cookies.get(COOKIE_NAME)?.value;
+            const ip = context.request.headers.get('x-forwarded-for') || 'unknown';
             
             if (sessionId) {
                 // Clear session from DB
@@ -114,7 +123,7 @@ export const auth = {
                 // Clear cookie
                 context.cookies.delete(COOKIE_NAME);
                 
-                console.log('Session cleared');
+                logger.auth('User logged out', { ip, sessionId: sessionId.slice(0, 8) });
             }
             
             return {
@@ -128,7 +137,7 @@ export const auth = {
                             path: '/',
                             sameSite: 'strict',
                             maxAge: 0
-                        }
+                        } satisfies App.CookieOptions
                     }
                 }
             };
