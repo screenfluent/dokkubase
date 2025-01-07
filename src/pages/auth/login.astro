@@ -14,7 +14,7 @@ if (Astro.locals.loginError?.message) {
 
 const result = Astro.getActionResult(actions.auth.login);
 if (result?.data?.success) {
-    return Astro.redirect('/dashboard');
+    return Astro.redirect('/');
 } else if (result?.error) {
     message = result.error.message;
     messageType = 'error';

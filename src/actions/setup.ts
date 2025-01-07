@@ -12,6 +12,7 @@ import crypto from 'crypto';
 import { db, settings, sessions } from '@/db';
 import { CSRF, logger } from '@/lib/security';
 import { AUTH } from '@/lib/constants';
+import type { ActionResponse } from '@/lib/types';
 
 // Setup schema
 const setupSchema = z.object({
@@ -24,14 +25,6 @@ const setupSchema = z.object({
 
 // Types
 type SetupInput = z.infer<typeof setupSchema>;
-type ActionResponse = {
-    success: boolean;
-    error?: string;
-    message?: string;
-    data?: {
-        redirectTo?: string;
-    };
-};
 
 // Setup actions
 export const setup = {
@@ -88,9 +81,17 @@ export const setup = {
                 const sessionId = crypto.randomBytes(32).toString('hex');
                 const expiresAt = new Date(Date.now() + AUTH.SESSION.MAX_AGE * 1000);
                 
+                const userData: App.User = {
+                    username: 'admin',
+                    role: 'admin',
+                    isLoggedIn: true,
+                    createdAt: new Date().toISOString(),
+                    lastLoginAt: new Date().toISOString()
+                };
+
                 await db.insert(sessions).values({
                     id: sessionId,
-                    data: JSON.stringify({ username: 'admin' }),
+                    data: JSON.stringify(userData),
                     expiresAt
                 });
 

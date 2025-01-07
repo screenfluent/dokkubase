@@ -1,48 +1,95 @@
-# Astro Starter Kit: Basics
+# DokkuBase 🚀
 
-```sh
-npm create astro@latest -- --template basics
+Self-hosted web GUI that connects to and manages Dokku server via SSH.
+
+## Features
+
+- 🔒 Secure authentication with rate limiting
+- 🛡️ CSRF protection and session management
+- 📝 Clean and simple setup process
+- 🚀 Fast and lightweight
+
+## Tech Stack
+
+- **Framework**: [Astro](https://astro.build/) 5.x (SSR mode)
+- **Database**: SQLite (via better-sqlite3)
+- **Auth**: Custom session-based auth
+- **Styling**: Native CSS (KISS principle)
+
+## Project Structure
+
+```
+src/
+┣ actions/          # Server actions (auth, setup)
+┃ ┣ auth.ts        # Authentication logic
+┃ ┣ index.ts       # Actions barrel file
+┃ ┗ setup.ts       # Initial setup logic
+┣ components/       # UI components
+┃ ┣ auth/          # Auth-related components
+┃ ┗ setup/         # Setup-related components
+┣ db/              # Database layer
+┃ ┣ index.ts       # DB connection & exports
+┃ ┣ migrate.ts     # DB migrations
+┃ ┗ schema.ts      # DB schema (Drizzle ORM)
+┣ lib/             # Shared utilities
+┃ ┣ security/      # Security features
+┃ ┃ ┣ csrf.ts      # CSRF protection
+┃ ┃ ┣ logger.ts    # Security logging
+┃ ┃ ┗ rate-limit.ts # Rate limiting
+┃ ┣ constants.ts   # Shared constants
+┃ ┣ types.ts       # Internal types
+┃ ┗ utils.ts       # Helper functions
+┣ pages/           # Routes & pages
+┃ ┣ auth/          # Auth routes
+┃ ┣ dashboard.astro # Main dashboard
+┃ ┣ error.astro    # Error page
+┃ ┣ index.astro    # Home page
+┃ ┗ setup.astro    # Setup page
+┣ entrypoint.ts    # App initialization
+┗ env.d.ts         # TypeScript declarations
 ```
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/basics)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/basics/devcontainer.json)
+## Development
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-![just-the-basics](https://github.com/withastro/astro/assets/2244813/a0a5533c-a856-4198-8470-2d67b1d7c554)
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src/
-│   ├── layouts/
-│   │   └── Layout.astro
-│   └── pages/
-│       └── index.astro
-└── package.json
+1. Clone the repo
+2. Install dependencies:
+```bash
+npm install
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+3. Run setup script:
+```bash
+npm run setup
+```
 
-## 🧞 Commands
+4. Start development server:
+```bash
+npm run dev
+```
 
-All commands are run from the root of the project, from a terminal:
+5. Visit setup URL (shown in console)
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+## Security Features
 
-## 👀 Want to learn more?
+- 🔒 Session-based authentication
+- 🛡️ CSRF protection for forms
+- 🚫 Rate limiting for sensitive endpoints
+- 📝 Security logging
+- 🔐 Secure cookie settings
+- 🛑 XSS protection via Astro
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+## Production
+
+1. Build the app:
+```bash
+npm run build
+```
+
+2. Run install script:
+```bash
+npm run install:prod
+```
+
+## License
+
+MIT

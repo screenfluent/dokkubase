@@ -15,6 +15,7 @@ interface ImportMetaEnv {
     readonly DATABASE_URL: string;
     /** Secret key for session encryption */
     readonly SESSION_SECRET: string;
+    readonly SETUP_TOKEN: string;
 }
 
 interface ImportMeta {
@@ -29,6 +30,7 @@ declare namespace App {
         createdAt?: string;
         lastLoginAt?: string;
         permissions?: string[];
+        role: 'admin';
     }
 
     interface CookieOptions {

@@ -1,13 +1,26 @@
-// Framework
+/**
+ * Main middleware for handling security and session management.
+ * 
+ * Features:
+ * - CSRF protection for forms
+ * - Rate limiting for sensitive endpoints
+ * - Session management and validation
+ * - Form action handling
+ * - Security logging
+ */
+
+// Framework imports
 import { defineMiddleware } from "astro:middleware";
 import type { MiddlewareHandler, APIContext } from "astro";
 import { getActionContext } from 'astro:actions';
 
-// Internal imports
+// Database imports
 import { db, sessions } from "@/db";
+import { eq } from "drizzle-orm";
+
+// Security imports
 import { CSRF, RateLimit, logger } from "@/lib/security";
 import { AUTH } from "@/lib/constants";
-import { eq } from "drizzle-orm";
 import { isValidSessionId, isPathIn } from "@/lib/utils";
 
 export const onRequest: MiddlewareHandler = defineMiddleware(
