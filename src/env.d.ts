@@ -5,7 +5,8 @@ declare module 'astro:middleware' {
 }
 
 declare module 'astro:actions' {
-    export { defineAction } from 'astro';
+    export { defineAction, getActionContext } from 'astro';
+    export type { APIContext } from 'astro';
 }
 
 // Define types for environment variables
