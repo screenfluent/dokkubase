@@ -30,3 +30,7 @@ data/*.db-journal
 
 # Keep data directory but ignore contents
 !data/.gitkeep
+
+# Temporary files
+cookies.txt
+tmp/
