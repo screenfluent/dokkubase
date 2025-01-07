@@ -1,6 +1,9 @@
 // Node built-ins
 import crypto from 'crypto';
 
+// Internal imports
+import { logger } from './logger';
+
 // Types
 export interface CSRFConfig {
     cookie: {
@@ -34,12 +37,12 @@ export class CSRF {
     // Validate token from form against stored token
     static validateToken(formToken: string | null, storedToken: string | null): boolean {
         if (!formToken || !storedToken) {
-            console.log('CSRF: Missing token(s)');
+            logger.security('CSRF: Missing token(s)');
             return false;
         }
 
         const isValid = formToken === storedToken;
-        console.log(`CSRF: Token validation ${isValid ? 'passed' : 'failed'}`);
+        logger.security(`CSRF: Token validation ${isValid ? 'passed' : 'failed'}`);
         return isValid;
     }
 

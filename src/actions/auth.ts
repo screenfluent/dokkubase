@@ -1,7 +1,6 @@
 // Framework
 import { defineAction } from 'astro:actions';
-import type { APIContext } from 'astro';
-import type { AstroCookies } from 'astro';
+import type { APIContext, AstroCookies } from 'astro';
 
 // Node built-ins
 import crypto from 'crypto';
@@ -11,8 +10,15 @@ import { z } from 'zod';
 
 // Internal imports
 import { DB } from '@/lib/db';
-import { CSRF } from '@/lib/security';
-import { logger } from '../lib/security';
+import { CSRF, logger } from '@/lib/security';
+
+// Types
+type LoginInput = z.infer<typeof loginSchema>;
+type ActionResponse = {
+    success: boolean;
+    error?: string;
+    redirect?: string;
+};
 
 // Auth constants
 export const COOKIE_NAME = 'sid' as const;
@@ -45,7 +51,7 @@ export const auth = {
     login: defineAction({
         accept: 'form',
         input: loginSchema,
-        handler: async (input: z.infer<typeof loginSchema>, context: APIContext) => {
+        handler: async (input: LoginInput, context: APIContext): Promise<ActionResponse> => {
             const ip = context.request.headers.get('x-forwarded-for') || 'unknown';
             
             // Validate CSRF token
