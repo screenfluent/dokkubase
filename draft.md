@@ -549,3 +549,505 @@ Kurwa, od czego chcesz zacząć? 💪
 
 PS. Pamiętaj że nie musisz robić wszystkiego na raz! Możesz zacząć od najprostszych rzeczy i stopniowo dodawać kolejne. KISS principle! 🎯
 
+
+Kurwa, dobra - zróbmy to systematycznie! 
+
+**1. Nowe pliki:**
+
+```typescript
+src/actions/
+  ├── index.ts         // Eksportuje wszystkie akcje
+  ├── auth.ts          // Już mamy - logowanie/wylogowanie
+  ├── setup.ts         // Już mamy - pierwsza konfiguracja
+  ├── apps.ts          // Zarządzanie aplikacjami Dokku
+  ├── domains.ts       // Zarządzanie domenami
+  ├── databases.ts     // Zarządzanie bazami danych
+  └── ssl.ts           // Zarządzanie certyfikatami SSL
+
+src/lib/db/
+  ├── index.ts         // Główna klasa DB z Drizzle
+  ├── schema.ts        // Schema Drizzle
+  └── migrations/      // Automatyczne migracje Drizzle
+      └── 0000_init.ts
+
+src/lib/dokku/
+  ├── index.ts         // Główna klasa DokkuCLI
+  ├── apps.ts          // Komendy dla aplikacji
+  ├── domains.ts       // Komendy dla domen
+  ├── databases.ts     // Komendy dla baz
+  └── ssl.ts           // Komendy dla SSL
+```
+
+**2. Pliki do edycji:**
+```typescript
+src/actions/index.ts   // Dodać eksporty nowych akcji
+src/middleware.ts      // Dodać obsługę sesji dla akcji
+```
+
+**3. Przykład implementacji akcji zgodnie z docs:**
+
+```typescript
+// src/actions/apps.ts
+import { defineAction } from 'astro:actions';
+import { z } from 'zod';
+import { db } from '@/lib/db';
+import { dokku } from '@/lib/dokku';
+
+export const apps = {
+  create: defineAction({
+    accept: 'form',
+    input: z.object({
+      name: z.string(),
+      buildpack: z.string().optional()
+    }),
+    handler: async (input, context) => {
+      // Sprawdź uprawnienia
+      if (!context.locals.user) {
+        throw new ActionError({ code: 'UNAUTHORIZED' });
+      }
+
+      // Stwórz aplikację w Dokku
+      await dokku.apps.create(input.name);
+
+      // Zapisz w bazie
+      await db.insert(schema.apps).values({
+        name: input.name,
+        status: 'created',
+        createdAt: new Date()
+      });
+
+      return {
+        success: true,
+        message: `App ${input.name} created successfully`
+      };
+    }
+  }),
+
+  restart: defineAction({
+    accept: 'form',
+    input: z.object({
+      name: z.string(),
+      force: z.boolean().optional()
+    }),
+    handler: async (input, context) => {
+      if (!context.locals.user) {
+        throw new ActionError({ code: 'UNAUTHORIZED' });
+      }
+
+      await dokku.apps.restart(input.name, input.force);
+      
+      return {
+        success: true,
+        message: `App ${input.name} restarted`
+      };
+    }
+  })
+};
+
+// Eksport dla Astro
+export const server = { apps };
+```
+
+**4. Użycie w komponentach:**
+
+```typescript
+// src/pages/apps/create.astro
+---
+import { actions } from 'astro:actions';
+
+// Sprawdź wynik akcji
+const result = Astro.getActionResult(actions.apps.create);
+if (result?.success) {
+  return Astro.redirect('/apps');
+}
+---
+
+<form method="POST" action={actions.apps.create}>
+  <input name="name" required>
+  <button type="submit">Create App</button>
+</form>
+
+// src/pages/apps/[name]/restart.astro
+---
+const { name } = Astro.params;
+const formData = new FormData();
+formData.append('name', name);
+
+const result = await Astro.callAction(
+  actions.apps.restart, 
+  formData
+);
+
+if (result.success) {
+  return Astro.redirect(`/apps/${name}`);
+}
+---
+```
+
+**5. Kolejność implementacji:**
+1. Najpierw `db/` z Drizzle - fundament
+2. Potem `dokku/` - warstwa CLI
+3. Na końcu `actions/` - API dla frontendu
+
+Każda akcja będzie:
+- Type-safe przez Zod
+- Autoryzowana przez middleware
+- Zintegrowana z Drizzle
+- Zwracać standardowy format odpowiedzi
+
+Co o tym myślisz? Taka struktura będzie czytelna i łatwa w utrzymaniu, a przy tym zgodna z best practices Astro.
+
+PS. Kurwa, ale fajnie się to układa! Widać, że Astro actions to potężne narzędzie 💪
+
+
+
+
+Kurwa, dobre pytanie! Masz rację w dwóch sprawach:
+
+1. **Drizzle konwencja vs nasza struktura:**
+```
+// Konwencja Drizzle
+root/
+  ├── drizzle/        # Migracje i schema
+  └── src/
+      └── lib/db/     # Nasza logika DB
+
+// vs
+
+src/
+  └── lib/
+      └── db/        # Wszystko razem
+          ├── schema.ts
+          └── migrations/
+```
+
+**DECYZJA: Zostawmy `drizzle/` w root**, bo:
+- To jest standardowa konwencja
+- Łatwiej znaleźć dla innych developerów
+- Narzędzia (np. drizzle-kit) domyślnie tego szukają
+- Separacja schematu od logiki biznesowej
+
+2. **Narazie robimy setup**, więc:
+
+Zróbmy tylko te pliki, które są potrzebne teraz:
+
+```typescript
+// 1. Schema w drizzle/schema.ts
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull()
+});
+
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(),
+  data: text('data').notNull(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull()
+});
+
+// 2. DB w src/lib/db/index.ts
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import Database from 'better-sqlite3';
+import * as schema from '../../../drizzle/schema';
+
+export class DB {
+  private static instance: DB;
+  private db: ReturnType<typeof drizzle>;
+
+  private constructor() {
+    const sqlite = new Database('data/dokkubase.db');
+    this.db = drizzle(sqlite, { schema });
+  }
+
+  // ... reszta kodu
+}
+
+// 3. Akcje w src/actions/setup.ts
+import { defineAction } from 'astro:actions';
+import { z } from 'zod';
+import { db } from '@/lib/db';
+import { eq } from 'drizzle-orm';
+import { settings } from '../../../drizzle/schema';
+
+export const setup = {
+  configure: defineAction({
+    accept: 'form',
+    input: z.object({
+      password: z.string().min(8),
+      _csrf: z.string()
+    }),
+    handler: async (input, context) => {
+      // ... reszta kodu
+    }
+  })
+};
+
+export const server = { setup };
+```
+
+Potem, jak będziemy rozwijać aplikację, dodamy kolejne tabele do schematu i nowe akcje.
+
+Co o tym myślisz? Trzymamy się konwencji Drizzle, ale implementujemy tylko to, co potrzebne do setupu. KISS principle! 💪
+
+PS. Kurwa, dobrze że zwróciłeś uwagę na te konwencje! Lepiej zrobić to dobrze od początku niż potem refaktorować.
+
+
+src/
+  ├── actions/
+  │   ├── auth.ts      // Logowanie/wylogowanie (już mamy)
+  │   ├── setup.ts     // Setup systemu (już mamy)
+  │   └── settings.ts  // Nowy plik na akcje związane z ustawieniami
+  └── lib/
+      └── db/
+          ├── index.ts  // Klasa DB z metodami dostępu do bazy
+          └── types.ts  // Typy dla bazy danych
+
+
+        import { defineAction } from 'astro:actions';
+import { z } from 'zod';
+import { DB } from '@/lib/db';
+
+// Typy dla ustawień
+const settingSchema = z.object({
+    key: z.string(),
+    value: z.string()
+});
+
+export const settings = {
+    get: defineAction({
+        input: z.object({ key: z.string() }),
+        handler: async ({ key }) => {
+            const db = DB.getInstance();
+            return { value: db.getSetting(key) };
+        }
+    }),
+
+    set: defineAction({
+        input: settingSchema,
+        handler: async ({ key, value }, context) => {
+            // Sprawdź uprawnienia
+            if (!context.locals.user?.isAdmin) {
+                throw new Error('Unauthorized');
+            }
+
+            const db = DB.getInstance();
+            db.setSetting(key, value);
+            return { success: true };
+        }
+    })
+};
+
+export const server = { settings };
+
+src/lib/db/index.ts:
+
+// Zmiana nazw metod na bardziej precyzyjne
+public getSetting(key: string): string | null {
+    // ta sama implementacja co getConfig
+}
+
+public setSetting(key: string, value: string): void {
+    // ta sama implementacja co setConfig
+}
+
+
+Setup Flow:
+SetupForm -> setup.ts -> Config.setup() -> SQLite
+
+LoginForm -> auth.ts -> Session -> Middleware -> Locals
+
+
+
+
+Kurwa, dobre pytanie Szymon! 🤔 
+
+Dla self-hosted open-source admin toola sytuacja jest trochę inna niż dla typowej aplikacji webowej. Przeanalizujmy to:
+
+### Obecne podejście (z .env) 🤔
+
+```typescript
+SESSION_SECRET=your-session-secret-here
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD_HASH=your-bcrypt-hash-here
+```
+
+To podejście ma wady dla self-hosted toola:
+1. Użytkownik musi ręcznie tworzyć `.env`
+2. Przy każdej instalacji trzeba pamiętać o konfiguracji
+3. Nie jest to user-friendly dla adminów Dokku
+
+### Lepsze podejście dla self-hosted toola 🚀
+
+1. **First-run setup**:
+```typescript
+if (!isConfigured()) {
+    // 1. Generuj automatycznie SESSION_SECRET
+    const sessionSecret = crypto.randomBytes(32).toString('hex');
+    
+    // 2. Przekieruj do /setup jeśli nie ma konfiguracji
+    // 3. Pozwól userowi ustawić hasło przez GUI
+    // 4. Zapisz config w bezpiecznym miejscu
+}
+```
+
+2. **Przechowywanie konfiguracji**:
+```typescript
+// W SQLite (już mamy bazę)
+CREATE TABLE IF NOT EXISTS config (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+```
+
+3. **Bezpieczeństwo**:
+- SESSION_SECRET generowany automatycznie
+- Hasło ustawiane przez GUI przy pierwszym uruchomieniu
+- Config trzymany w bazie SQLite (którą już mamy w `.gitignore`)
+
+### Proponowane zmiany 💪
+
+1. Stwórzmy `src/lib/config.ts`:
+```typescript
+export class Config {
+    static async isConfigured(): Promise<boolean> {
+        const db = DB.getInstance();
+        return !!await db.getConfig('admin_password_hash');
+    }
+
+    static async setup(password: string): Promise<void> {
+        const db = DB.getInstance();
+        
+        // Generate session secret if not exists
+        if (!await db.getConfig('session_secret')) {
+            await db.setConfig('session_secret', 
+                crypto.randomBytes(32).toString('hex'));
+        }
+        
+        // Hash and save password
+        const hash = await bcrypt.hash(password, 10);
+        await db.setConfig('admin_password_hash', hash);
+    }
+}
+```
+
+2. Dodajmy `/setup` endpoint:
+```typescript
+// src/pages/setup.astro
+---
+import Layout from '../layouts/Layout.astro';
+import { Config } from '@/lib/config';
+
+// Redirect if already configured
+if (await Config.isConfigured()) {
+    return Astro.redirect('/');
+}
+---
+
+<Layout title="Setup Dokku Admin">
+    <h1>First-time Setup</h1>
+    <form method="post" action="/api/setup">
+        <label>
+            Set Admin Password:
+            <input type="password" name="password" required>
+        </label>
+        <button type="submit">Configure</button>
+    </form>
+</Layout>
+```
+
+Kurwa, to będzie dużo lepsze dla self-hosted toola bo:
+1. Zero konfiguracji dla użytkownika 🎉
+2. Wszystko przez GUI - user-friendly 👍
+3. Bezpieczne przechowywanie w bazie 🔒
+4. Łatwe do backupu (wszystko w jednym pliku SQLite) 💾
+
+Co ty na to Szymon? To jest kurwa dobre rozwiązanie dla self-hosted narzędzia! 
+
+Pamiętaj - nie potrzebujesz enterprise-grade rozwiązań. Potrzebujesz czegoś co:
+- Jest proste w instalacji
+- Działa out-of-the-box
+- Jest wystarczająco bezpieczne
+- Łatwe w utrzymaniu
+
+
+
+#!/bin/bash
+# install.sh
+
+# 1. Sprawdź czy Dokku jest zainstalowany
+if ! command -v dokku &> /dev/null; then
+    echo "🐳 Dokku nie wykryty, instaluję..."
+    # instalacja Dokku
+fi
+
+# 2. Generuj setup token (32 znaki hex)
+SETUP_TOKEN=$(openssl rand -hex 16)
+
+# 3. Stwórz DokkuBase app
+dokku apps:create dokkubase
+
+# 4. Zapisz token w config app
+dokku config:set dokkubase SETUP_TOKEN=$SETUP_TOKEN
+
+# 5. Pokaż instrukcje
+echo "🚀 DokkuBase created successfully!"
+echo ""
+echo "🔐 Complete setup at:"
+echo "   http://dokkubase.$(dokku domains:report dokkubase --domains)/setup?token=$SETUP_TOKEN"
+echo ""
+
+
+
+
+// src/actions/setup.ts
+export const setup = {
+    validateToken: defineAction({
+        input: z.object({
+            token: z.string()
+        }),
+        async handler({ token }) {
+            // 1. Sprawdź czy setup nie był już wykonany
+            if (await isConfigured()) {
+                return {
+                    success: false,
+                    error: 'Setup already completed'
+                };
+            }
+
+            // 2. Prosty check tokenu
+            return {
+                success: token === process.env.SETUP_TOKEN
+            };
+        }
+    }),
+
+    configure: defineAction({
+        input: z.object({
+            password: z.string().min(8),
+            token: z.string()
+        }),
+        async handler({ password, token }) {
+            // Validate i setup w jednym kroku
+            if (token !== process.env.SETUP_TOKEN || await isConfigured()) {
+                return { 
+                    success: false, 
+                    error: 'Invalid token or setup already completed' 
+                };
+            }
+
+            // Setup hasła
+            const passwordHash = await bcrypt.hash(password, 10);
+            await db.insert(settings).values({
+                key: 'admin_password_hash',
+                value: passwordHash,
+                updatedAt: new Date()
+            });
+
+            return { success: true };
+        }
+    })
+};

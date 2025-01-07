@@ -7,9 +7,11 @@ import crypto from 'crypto';
 
 // External libraries
 import { z } from 'zod';
+import bcrypt from 'bcrypt';
+import { eq } from 'drizzle-orm';
 
 // Internal imports
-import { DB } from '@/lib/db';
+import { db, sessions, settings } from '@/db';
 import { CSRF, logger } from '@/lib/security';
 
 // Types
@@ -67,8 +69,22 @@ export const auth = {
             logger.auth('Login attempt', { ip, username: input.username });
 
             try {
-                // Validate credentials (hardcoded for now)
-                if (input.username !== 'admin' || input.password !== 'admin123') {
+                // Check if system is configured
+                const adminPassword = await db.query.settings.findFirst({
+                    where: eq(settings.key, 'admin_password_hash')
+                });
+
+                if (!adminPassword) {
+                    logger.security('Login attempt before setup', { ip });
+                    return {
+                        success: false,
+                        error: 'System not configured',
+                        redirect: '/setup'
+                    };
+                }
+
+                // Validate credentials
+                if (input.username !== 'admin' || !await bcrypt.compare(input.password, adminPassword.value)) {
                     logger.auth('Login failed', { ip, username: input.username, reason: 'Invalid credentials' });
                     return {
                         success: false,
@@ -80,11 +96,14 @@ export const auth = {
                 const sessionId = crypto.randomBytes(32).toString('hex');
                 
                 // Store session
-                const db = DB.getInstance();
-                db.setSession(sessionId, {
-                    username: input.username,
-                    isLoggedIn: true
-                } satisfies App.User);
+                await db.insert(sessions).values({
+                    id: sessionId,
+                    data: JSON.stringify({
+                        username: input.username,
+                        isLoggedIn: true
+                    } satisfies App.User),
+                    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+                });
 
                 // Set cookie
                 context.cookies.set(COOKIE_NAME, sessionId, {
@@ -123,8 +142,7 @@ export const auth = {
             
             if (sessionId) {
                 // Clear session from DB
-                const db = DB.getInstance();
-                db.deleteSession(sessionId);
+                await db.delete(sessions).where(eq(sessions.id, sessionId));
                 
                 // Clear cookie
                 context.cookies.delete(COOKIE_NAME);

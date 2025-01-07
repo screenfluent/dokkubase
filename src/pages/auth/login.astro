@@ -20,6 +20,11 @@ if (result?.data?.success) {
     messageType = 'error';
 }
 
+// Check if CSRF token exists
+if (!Astro.locals.csrfToken) {
+    return Astro.redirect('/error?code=no_csrf_token&message=Security token missing');
+}
+
 // Pass remaining attempts to the form
 const remainingAttempts = Astro.locals.loginError?.remainingAttempts;
 const csrfToken = Astro.locals.csrfToken;

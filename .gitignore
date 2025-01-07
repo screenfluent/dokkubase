@@ -17,6 +17,8 @@ pnpm-debug.log*
 # environment variables
 .env
 .env.production
+.env.local
+.env*.local
 
 # macOS-specific files
 .DS_Store
@@ -27,6 +29,8 @@ pnpm-debug.log*
 # SQLite database
 data/*.db
 data/*.db-journal
+*.sqlite
+*.sqlite3
 
 # Keep data directory but ignore contents
 !data/.gitkeep
@@ -34,3 +38,18 @@ data/*.db-journal
 # Temporary files
 cookies.txt
 tmp/
+*.log
+*.tmp
+*.temp
+.cache/
+
+# Security-sensitive files
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.keystore
+.credentials
+.secret*

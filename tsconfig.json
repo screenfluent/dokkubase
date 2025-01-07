@@ -5,8 +5,12 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "jsx": "preserve"
+    "jsx": "preserve",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true
   },
-  "include": [".astro/types.d.ts", "src/**/*"],
+  "include": [".astro/types.d.ts", "src/**/*", "scripts/**/*"],
   "exclude": ["node_modules", "dist"]
 }

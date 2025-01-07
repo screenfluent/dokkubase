@@ -25,6 +25,9 @@ declare namespace App {
     interface User {
         username: string;
         isLoggedIn: boolean;
+        createdAt?: string;
+        lastLoginAt?: string;
+        permissions?: string[];
     }
 
     interface CookieOptions {
@@ -33,6 +36,21 @@ declare namespace App {
         sameSite?: 'strict' | 'lax' | 'none';
         maxAge?: number;
         secure?: boolean;
+    }
+
+    // API types
+    interface ApiResponse {
+        success: boolean;
+        error?: string;
+        message?: string;
+        redirect?: string;
+        data?: unknown;
+    }
+
+    interface ApiError {
+        code: string;
+        message: string;
+        details?: unknown;
     }
 
     // Security types
@@ -48,13 +66,27 @@ declare namespace App {
         };
     }
 
+    // Session types
+    interface Session {
+        id: string;
+        user: User;
+        expiresAt: number;
+    }
+
+    interface LoginError {
+        remainingAttempts?: number;
+        message?: string;
+    }
+
     // Locals for middleware
     interface Locals {
-        user: User | null;
-        loginError?: {
-            message?: string;
-            remainingAttempts: number;
-        };
-        csrfToken: string;
+        csrfToken?: string;
+        user?: User;
+        loginError?: LoginError;
     }
+}
+
+// Extend Astro namespace to include our Locals
+declare namespace Astro {
+    interface Locals extends App.Locals {}
 } 

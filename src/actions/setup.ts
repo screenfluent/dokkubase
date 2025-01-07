@@ -26,7 +26,9 @@ type ActionResponse = {
     success: boolean;
     error?: string;
     message?: string;
-    redirect?: string;
+    data?: {
+        redirectTo?: string;
+    };
 };
 
 // Setup actions
@@ -83,7 +85,9 @@ export const setup = {
                 return {
                     success: true,
                     message: 'Setup completed successfully',
-                    redirect: '/auth/login'
+                    data: {
+                        redirectTo: '/auth/login'
+                    }
                 };
             } catch (err) {
                 logger.error('Setup error', { 

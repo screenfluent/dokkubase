@@ -6,11 +6,16 @@ interface Props {
     message?: string;
     messageType?: 'error' | 'success';
     remainingAttempts?: number;
-    csrfToken: string;
+    csrfToken: string | undefined;
 }
 
 const { message, messageType = 'error', remainingAttempts, csrfToken } = Astro.props;
 const { formField } = CSRF.getConfig();
+
+// Redirect if no CSRF token
+if (!csrfToken) {
+    return Astro.redirect('/error?code=no_csrf_token&message=Security token missing');
+}
 ---
 
 <form method="POST" action={actions.auth.login}>
