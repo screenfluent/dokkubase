@@ -27,10 +27,8 @@ pnpm-debug.log*
 .idea/
 
 # SQLite database
-data/*.db
-data/*.db-journal
-*.sqlite
-*.sqlite3
+data/dokkubase.db
+data/dokkubase.db-*
 
 # Keep data directory but ignore contents
 !data/.gitkeep
@@ -53,3 +51,7 @@ tmp/
 *.keystore
 .credentials
 .secret*
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
