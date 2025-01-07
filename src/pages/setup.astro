@@ -1,0 +1,66 @@
+---
+// Framework
+import Layout from '@/layouts/Layout.astro';
+import { actions } from 'astro:actions';
+
+// Components
+import SetupForm from '@/components/setup/SetupForm.astro';
+
+// Database
+import { db, settings } from '@/db';
+import { eq } from 'drizzle-orm';
+
+// Get and validate setup token
+const token = Astro.url.searchParams.get('token');
+if (!token || token !== import.meta.env.SETUP_TOKEN) {
+    return Astro.redirect('/error?message=Invalid setup token');
+}
+
+// Check if already configured
+const adminExists = await db.query.settings.findFirst({
+    where: eq(settings.key, 'admin_password_hash')
+});
+
+if (adminExists) {
+    return Astro.redirect('/');
+}
+
+// Get action result
+const result = Astro.getActionResult(actions.setup.configure);
+let error: string | undefined;
+let message: string | undefined;
+
+if (result) {
+    if (result.error) {
+        error = result.error.message;
+    } else if (result.data.redirect) {
+        return Astro.redirect(result.data.redirect);
+    } else {
+        message = result.data.message;
+    }
+}
+
+// Get CSRF token from middleware
+const csrfToken = Astro.locals.csrfToken;
+---
+
+<Layout title="Setup - Dokku Admin">
+    <main>
+        <SetupForm 
+            error={error} 
+            message={message}
+            csrfToken={csrfToken}
+            token={token}
+        />
+    </main>
+</Layout>
+
+<style>
+    main {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f5f6fa;
+    }
+</style> 

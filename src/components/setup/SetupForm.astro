@@ -1,0 +1,242 @@
+---
+// Framework
+import { actions } from 'astro:actions';
+
+// Internal imports
+import { CSRF } from '@/lib/security';
+
+// Props
+interface Props {
+    error?: string;
+    message?: string;
+    csrfToken: string | undefined;
+    token: string;
+}
+
+const { error, message, csrfToken, token } = Astro.props;
+const { formField } = CSRF.getConfig();
+
+// Redirect if no CSRF token
+if (!csrfToken) {
+    return Astro.redirect('/error?code=no_csrf_token&message=Security token missing');
+}
+---
+
+<form method="post" action={actions.setup.configure} class="setup-form" novalidate>
+    <input type="hidden" name={formField} value={csrfToken}>
+    <input type="hidden" name="token" value={token}>
+    
+    <h1>Initial Setup</h1>
+    <p class="intro">Welcome to Dokku Admin! Let's set up your admin account.</p>
+
+    {error && <div class="error-message" role="alert">{error}</div>}
+    {message && <div class="success-message" role="status">{message}</div>}
+
+    <div class="form-group">
+        <label for="password">Admin Password:</label>
+        <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            required 
+            minlength="8"
+            maxlength="100"
+            autocomplete="new-password"
+            aria-describedby="password-help password-error"
+        >
+        <p id="password-help" class="help-text">
+            Password must be at least 8 characters long
+        </p>
+        <p id="password-error" class="error-text" hidden></p>
+    </div>
+
+    <div class="form-group">
+        <label for="confirm_password">Confirm Password:</label>
+        <input 
+            type="password" 
+            id="confirm_password" 
+            required
+            minlength="8"
+            maxlength="100"
+            autocomplete="new-password"
+            aria-describedby="confirm-error"
+        >
+        <p id="confirm-error" class="error-text" hidden></p>
+    </div>
+
+    <button type="submit" class="submit-btn">Configure Admin Account</button>
+</form>
+
+<script>
+    // Client-side password validation
+    const form = document.querySelector('.setup-form') as HTMLFormElement;
+    const password = document.getElementById('password') as HTMLInputElement;
+    const confirmPassword = document.getElementById('confirm_password') as HTMLInputElement;
+    const passwordError = document.getElementById('password-error') as HTMLParagraphElement;
+    const confirmError = document.getElementById('confirm-error') as HTMLParagraphElement;
+
+    // Validate password strength
+    function validatePassword(value: string): string | null {
+        if (value.length < 8) return 'Password must be at least 8 characters long';
+        if (!/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter';
+        if (!/[a-z]/.test(value)) return 'Password must contain at least one lowercase letter';
+        if (!/[0-9]/.test(value)) return 'Password must contain at least one number';
+        return null;
+    }
+
+    // Show error message
+    function showError(element: HTMLElement, message: string) {
+        element.textContent = message;
+        element.hidden = false;
+    }
+
+    // Hide error message
+    function hideError(element: HTMLElement) {
+        element.textContent = '';
+        element.hidden = true;
+    }
+
+    // Validate passwords match
+    function validateMatch() {
+        if (password.value && confirmPassword.value) {
+            if (password.value !== confirmPassword.value) {
+                showError(confirmError, 'Passwords do not match');
+                return false;
+            }
+            hideError(confirmError);
+        }
+        return true;
+    }
+
+    // Validate on input
+    password.addEventListener('input', () => {
+        const error = validatePassword(password.value);
+        if (error) {
+            showError(passwordError, error);
+        } else {
+            hideError(passwordError);
+        }
+        validateMatch();
+    });
+
+    confirmPassword.addEventListener('input', validateMatch);
+
+    // Validate on submit
+    form.addEventListener('submit', (e) => {
+        const passwordError = validatePassword(password.value);
+        if (passwordError) {
+            e.preventDefault();
+            showError(document.getElementById('password-error') as HTMLParagraphElement, passwordError);
+            password.focus();
+            return;
+        }
+
+        if (!validateMatch()) {
+            e.preventDefault();
+            confirmPassword.focus();
+        }
+    });
+</script>
+
+<style>
+    .setup-form {
+        max-width: 400px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+        margin: 0 0 1rem;
+        color: #2c3e50;
+        font-size: 1.8rem;
+    }
+
+    .intro {
+        color: #666;
+        margin-bottom: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+        font-weight: 500;
+    }
+
+    input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+
+    input:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+
+    input:invalid {
+        border-color: #e74c3c;
+    }
+
+    .help-text {
+        font-size: 0.875rem;
+        color: #666;
+        margin-top: 0.25rem;
+    }
+
+    .error-text {
+        font-size: 0.875rem;
+        color: #e74c3c;
+        margin-top: 0.25rem;
+    }
+
+    .error-message {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        background: #fee;
+        border: 1px solid #fcc;
+        border-radius: 4px;
+        color: #c00;
+    }
+
+    .success-message {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        background: #efe;
+        border: 1px solid #cfc;
+        border-radius: 4px;
+        color: #0c0;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 0.75rem;
+        background: #3498db;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .submit-btn:hover {
+        background: #2980b9;
+    }
+
+    .submit-btn:disabled {
+        background: #95a5a6;
+        cursor: not-allowed;
+    }
+</style> 
