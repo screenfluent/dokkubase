@@ -72,7 +72,7 @@ export const auth = {
                     httpOnly: true,
                     path: '/',
                     sameSite: 'strict',
-                    maxAge: 86400 // 24h
+                    maxAge: 7 * 24 * 60 * 60 // 7 days
                 });
 
                 console.log('Session created and stored in DB');

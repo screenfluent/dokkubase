@@ -26,5 +26,9 @@ declare namespace App {
             username: string;
             isLoggedIn: boolean;
         } | null;
+        loginError?: {
+            message?: string;
+            remainingAttempts: number;
+        };
     }
 } 

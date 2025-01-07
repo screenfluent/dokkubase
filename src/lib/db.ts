@@ -51,16 +51,32 @@ export class DB {
 
     // Session methods - can be moved to a separate module when the app grows
     public getSession<T = unknown>(id: string): T | null {
+        const now = Date.now();
         const row = this.db.prepare<[string, number]>(
-            'SELECT data FROM sessions WHERE id = ? AND expires_at > ?'
-        ).get(id, Date.now()) as { data: string } | undefined;
+            'SELECT data, expires_at FROM sessions WHERE id = ? AND expires_at > ?'
+        ).get(id, now) as { data: string; expires_at: number } | undefined;
         
         if (!row) {
-            console.log(`DB: Session ${id.slice(0, 8)}... not found or expired`);
+            console.log(`DB: Session ${id.slice(0, 8)}... check failed:`);
+            console.log(`- Current time: ${new Date(now).toISOString()}`);
+            
+            // Sprawdźmy czy sesja w ogóle istnieje
+            const session = this.db.prepare('SELECT expires_at FROM sessions WHERE id = ?')
+                .get(id) as { expires_at: number } | undefined;
+            
+            if (session) {
+                console.log(`- Found expired session that expired at: ${new Date(session.expires_at).toISOString()}`);
+            } else {
+                console.log(`- No session found with this ID`);
+            }
             return null;
         }
         
-        console.log(`DB: Session ${id.slice(0, 8)}... retrieved successfully`);
+        console.log(`DB: Session ${id.slice(0, 8)}... retrieved successfully:`);
+        console.log(`- Current time: ${new Date(now).toISOString()}`);
+        console.log(`- Expires at: ${new Date(row.expires_at).toISOString()}`);
+        console.log(`- TTL: ${(row.expires_at - now) / 1000 / 60} minutes remaining`);
+        
         return JSON.parse(row.data);
     }
 
@@ -72,7 +88,10 @@ export class DB {
             VALUES (?, ?, ?)
         `).run(id, JSON.stringify(data), expiresAt);
 
-        console.log(`DB: Session ${id.slice(0, 8)}... stored, expires in ${expiresIn / 1000 / 60} minutes`);
+        console.log(`DB: Session ${id.slice(0, 8)}... stored:`);
+        console.log(`- Current time: ${new Date(Date.now()).toISOString()}`);
+        console.log(`- Expires at: ${new Date(expiresAt).toISOString()}`);
+        console.log(`- TTL: ${expiresIn / 1000 / 60} minutes`);
     }
 
     public deleteSession(id: string): void {
@@ -80,14 +99,25 @@ export class DB {
         console.log(`DB: Session ${id.slice(0, 8)}... ${result.changes ? 'deleted' : 'not found'}`);
     }
 
+    public getActiveSessionsCount(): number {
+        const result = this.db.prepare(
+            'SELECT COUNT(*) as count FROM sessions WHERE expires_at > ?'
+        ).get(Date.now()) as { count: number };
+        
+        return result.count;
+    }
+
     public cleanupSessions(): { deletedCount: number } {
+        const before = this.getActiveSessionsCount();
         const deleted = this.db.prepare(
             'DELETE FROM sessions WHERE expires_at <= ?'
         ).run(Date.now());
+        const after = this.getActiveSessionsCount();
         
-        if (deleted.changes > 0) {
-            console.log(`DB: Cleaned up ${deleted.changes} expired sessions at ${new Date().toISOString()}`);
-        }
+        console.log(`DB: Session cleanup at ${new Date().toISOString()}:`);
+        console.log(`- Before: ${before} active sessions`);
+        console.log(`- Deleted: ${deleted.changes} expired sessions`);
+        console.log(`- After: ${after} active sessions`);
 
         return { deletedCount: deleted.changes };
     }

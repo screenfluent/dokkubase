@@ -4,9 +4,10 @@ import { actions } from "astro:actions";
 interface Props {
     message?: string;
     messageType?: 'error' | 'success';
+    remainingAttempts?: number;
 }
 
-const { message, messageType = 'error' } = Astro.props;
+const { message, messageType = 'error', remainingAttempts } = Astro.props;
 ---
 
 <form method="POST" action={actions.auth.login}>
@@ -25,9 +26,17 @@ const { message, messageType = 'error' } = Astro.props;
     </div>
 
     {message && <p class={messageType}>{message}</p>}
+    {typeof remainingAttempts === 'number' && remainingAttempts < 5 && (
+        <p class="attempts">Remaining attempts: {remainingAttempts}/5</p>
+    )}
 </form>
 
 <style>
     .error { color: red; }
     .success { color: green; }
+    .attempts { 
+        color: #666;
+        font-size: 0.9em;
+        margin-top: 0.5em;
+    }
 </style> 
