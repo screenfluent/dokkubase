@@ -6,10 +6,12 @@ import type { APIContext } from 'astro';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
+import crypto from 'crypto';
 
 // Internal imports
-import { db, settings } from '@/db';
+import { db, settings, sessions } from '@/db';
 import { CSRF, logger } from '@/lib/security';
+import { AUTH } from '@/lib/constants';
 
 // Setup schema
 const setupSchema = z.object({
@@ -81,12 +83,31 @@ export const setup = {
                 });
                 
                 logger.security('Initial setup completed', { ip });
+
+                // Create session for the admin
+                const sessionId = crypto.randomBytes(32).toString('hex');
+                const expiresAt = new Date(Date.now() + AUTH.SESSION.MAX_AGE * 1000);
+                
+                await db.insert(sessions).values({
+                    id: sessionId,
+                    data: JSON.stringify({ username: 'admin' }),
+                    expiresAt
+                });
+
+                // Set session cookie
+                context.cookies.set(AUTH.COOKIE_NAME, sessionId, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'strict',
+                    path: '/',
+                    expires: expiresAt
+                });
                 
                 return {
                     success: true,
                     message: 'Setup completed successfully',
                     data: {
-                        redirectTo: '/auth/login'
+                        redirectTo: '/'
                     }
                 };
             } catch (err) {

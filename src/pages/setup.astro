@@ -14,10 +14,12 @@ import { db, settings } from '@/db';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/lib/security';
 
-// Get and validate setup token
-const token = Astro.url?.searchParams.get('token') ?? null;
-if (!token || token !== import.meta.env.SETUP_TOKEN) {
-    return Astro.redirect('/error?message=Invalid setup token');
+// Only validate token for GET requests
+if (Astro.request.method === 'GET') {
+    const token = Astro.url?.searchParams.get('token') ?? null;
+    if (!token || token !== import.meta.env.SETUP_TOKEN) {
+        return Astro.redirect('/error?message=Invalid setup token');
+    }
 }
 
 // Check if already configured
@@ -41,14 +43,27 @@ let message: string | undefined;
 
 if (Astro.request.method === 'POST') {
     const formData = await Astro.request.formData();
-    formData.append('token', token);
-    await actions.setup.configure(formData);
+    formData.append('token', Astro.url?.searchParams.get('token') ?? '');
+    const result = await actions.setup.configure(formData);
+    
+    if (result.success && result.data?.redirectTo) {
+        return Astro.redirect(result.data.redirectTo);
+    }
+    
+    if (result.error) {
+        error = result.error;
+    }
+    
+    if (result.message) {
+        message = result.message;
+    }
 } else if (result?.error) {
     error = result.error;
 }
 
 // Get CSRF token from middleware
 const csrfToken = Astro.locals.csrfToken;
+const token = Astro.url?.searchParams.get('token') ?? '';
 ---
 
 <Layout title="Setup - Dokku Admin">

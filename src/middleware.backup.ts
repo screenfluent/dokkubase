@@ -4,11 +4,23 @@ import type { MiddlewareHandler, APIContext } from "astro";
 import { getActionContext } from 'astro:actions';
 
 // Internal imports
-import { db, sessions } from "@/db";
+import { db, sessions, settings } from "@/db";
 import { CSRF, RateLimit, logger } from "@/lib/security";
 import { AUTH } from "@/lib/constants";
 import { eq } from "drizzle-orm";
-import { isValidSessionId, isPathIn } from "@/lib/utils";
+
+// Simple validation for session ID (should be 64 char hex)
+function isValidSessionId(id: string | undefined): boolean {
+    return Boolean(id && /^[a-f0-9]{64}$/.test(id));
+}
+
+// Helper to check if path is in array with type safety
+function isPathIn<T extends string>(path: string, paths: readonly T[]): path is T {
+    return paths.includes(path as T);
+}
+
+// Cleanup rate limit entries periodically
+setInterval(() => RateLimit.cleanup(), AUTH.SESSION.CLEANUP_INTERVAL);
 
 export const onRequest: MiddlewareHandler = defineMiddleware(
     async (context: APIContext, next: () => Promise<Response>) => {
@@ -24,8 +36,33 @@ export const onRequest: MiddlewareHandler = defineMiddleware(
         const method = request.method;
 
         try {
-            // Generate CSRF token for all GET requests
+            // Handle form actions
+            const { action, setActionResult, serializeActionResult } = getActionContext(context);
+            if (action?.calledFrom === 'form') {
+                const result = await action.handler();
+                setActionResult(action.name, serializeActionResult(result));
+            }
+
+            // Check if system is configured
+            const adminExists = await db.query.settings.findFirst({
+                where: eq(settings.key, 'admin_password_hash')
+            });
+            
+            // If not configured and not accessing setup or public paths
+            if (!adminExists && !isPathIn(path, AUTH.PATHS.SETUP) && !isPathIn(path, AUTH.PATHS.PUBLIC)) {
+                logger.security('Redirecting to setup', { ip, path });
+                return redirect('/setup');
+            }
+            
+            // If system is configured and trying to access setup
+            if (adminExists && isPathIn(path, AUTH.PATHS.SETUP)) {
+                logger.security('Setup accessed when configured', { ip });
+                return redirect('/');
+            }
+
+            // Handle CSRF token
             if (method === 'GET') {
+                // Generate new token for GET requests
                 const token = CSRF.generateToken();
                 const config = CSRF.getConfig();
                 
@@ -72,40 +109,25 @@ export const onRequest: MiddlewareHandler = defineMiddleware(
 
             // Get and validate session from cookie
             const sessionId = cookies.get(AUTH.COOKIE_NAME)?.value;
+            if (sessionId && isValidSessionId(sessionId)) {
+                const session = await db.query.sessions.findFirst({
+                    where: eq(sessions.id, sessionId)
+                });
 
-            // Skip session check for paths that don't require auth
-            if (!isPathIn(path, AUTH.PATHS.NO_AUTH)) {
-                if (sessionId && isValidSessionId(sessionId)) {
-                    const session = await db.query.sessions.findFirst({
-                        where: eq(sessions.id, sessionId)
-                    });
-
-                    if (session?.data) {
-                        const userData = JSON.parse(session.data) as App.User;
-                        
-                        // Check session expiration
-                        if (session.expiresAt < new Date()) {
-                            logger.security('Session expired', { ip, sessionId: sessionId.slice(0, 8) });
-                            await db.delete(sessions).where(eq(sessions.id, sessionId));
-                            cookies.delete(AUTH.COOKIE_NAME);
-                            return redirect('/auth/login');
-                        }
-
-                        // Add user to locals
-                        locals.user = userData;
-                    } else {
+                if (session?.data) {
+                    const userData = JSON.parse(session.data) as App.User;
+                    
+                    // Check session expiration
+                    if (session.expiresAt < new Date()) {
+                        logger.security('Session expired', { ip, sessionId: sessionId.slice(0, 8) });
+                        await db.delete(sessions).where(eq(sessions.id, sessionId));
+                        cookies.delete(AUTH.COOKIE_NAME);
                         return redirect('/auth/login');
                     }
-                } else {
-                    return redirect('/auth/login');
-                }
-            }
 
-            // Handle form actions - needs everything above
-            const { action, setActionResult, serializeActionResult } = getActionContext(context);
-            if (action?.calledFrom === 'form') {
-                const result = await action.handler();
-                setActionResult(action.name, serializeActionResult(result));
+                    // Add user to locals
+                    locals.user = userData;
+                }
             }
 
             // Call the next middleware/route handler

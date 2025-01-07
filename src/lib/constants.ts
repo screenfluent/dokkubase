@@ -20,11 +20,13 @@ export const AUTH = {
             '/apple-touch-icon.png',
             '/apple-touch-icon-precomposed.png'
         ] as const,
-        RATE_LIMITED: ['/auth/login', '/api/setup'] as const
+        RATE_LIMITED: ['/auth/login', '/api/setup'] as const,
+        NO_AUTH: ['/setup', '/auth/login', '/error'] as const
     }
 } as const;
 
 // Path types for type safety
 export type SetupPath = typeof AUTH.PATHS.SETUP[number];
 export type PublicPath = typeof AUTH.PATHS.PUBLIC[number];
-export type RateLimitedPath = typeof AUTH.PATHS.RATE_LIMITED[number]; 
+export type RateLimitedPath = typeof AUTH.PATHS.RATE_LIMITED[number];
+export type NoAuthPath = typeof AUTH.PATHS.NO_AUTH[number]; 

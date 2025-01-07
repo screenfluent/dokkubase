@@ -1,6 +1,7 @@
 // Framework
 import { defineMiddleware } from "astro:middleware";
 import type { MiddlewareHandler, APIContext } from "astro";
+import { getActionContext } from 'astro:actions';
 
 // Internal imports
 import { db, sessions, settings } from "@/db";
@@ -35,7 +36,24 @@ export const onRequest: MiddlewareHandler = defineMiddleware(
         const method = request.method;
 
         try {
-            // Check if system is configured
+            // 1. CSRF token handling - needed for all forms
+            if (method === 'GET') {
+                const token = CSRF.generateToken();
+                const config = CSRF.getConfig();
+                
+                cookies.set(config.cookie.name, token, config.cookie);
+                locals.csrfToken = token;
+                
+                logger.security('CSRF token generated', { ip });
+            } else {
+                const token = cookies.get(CSRF.getConfig().cookie.name)?.value;
+                if (token) {
+                    locals.csrfToken = token;
+                    logger.security('CSRF token retrieved from cookie', { ip });
+                }
+            }
+
+            // 2. Check if system is configured
             const adminExists = await db.query.settings.findFirst({
                 where: eq(settings.key, 'admin_password_hash')
             });
@@ -52,19 +70,8 @@ export const onRequest: MiddlewareHandler = defineMiddleware(
                 return redirect('/');
             }
 
-            // Generate CSRF token for GET requests and login-related paths
-            if (method === 'GET' || path === '/auth/login') {
-                const token = CSRF.generateToken();
-                const config = CSRF.getConfig();
-                
-                cookies.set(config.cookie.name, token, config.cookie);
-                locals.csrfToken = token;
-                
-                logger.security('CSRF token generated', { ip });
-            }
-
-            // Rate limiting for sensitive POST endpoints
-            if (method === 'POST' && isPathIn(path, AUTH.PATHS.RATE_LIMITED)) {
+            // 3. Rate limiting for sensitive endpoints
+            if (isPathIn(path, AUTH.PATHS.RATE_LIMITED)) {
                 if (!RateLimit.checkAndAdd(ip)) {
                     const message = path === '/auth/login' 
                         ? 'Too many login attempts. Please try again later.'
@@ -91,7 +98,7 @@ export const onRequest: MiddlewareHandler = defineMiddleware(
                 }
             }
 
-            // Get and validate session from cookie
+            // 4. Session management
             const sessionId = cookies.get(AUTH.COOKIE_NAME)?.value;
             if (sessionId && isValidSessionId(sessionId)) {
                 const session = await db.query.sessions.findFirst({
@@ -112,6 +119,13 @@ export const onRequest: MiddlewareHandler = defineMiddleware(
                     // Add user to locals
                     locals.user = userData;
                 }
+            }
+
+            // 5. Handle form actions - needs everything above
+            const { action, setActionResult, serializeActionResult } = getActionContext(context);
+            if (action?.calledFrom === 'form') {
+                const result = await action.handler();
+                setActionResult(action.name, serializeActionResult(result));
             }
 
             // Call the next middleware/route handler

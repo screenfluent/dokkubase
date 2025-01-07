@@ -1,6 +1,8 @@
 // Database initialization
 import { db, sessions } from '@/db';
 import { lt } from 'drizzle-orm';
+import { AUTH } from '@/lib/constants';
+import { RateLimit } from '@/lib/security';
 
 // Initialize all app services
 export function initializeApp() {
@@ -12,7 +14,10 @@ export function initializeApp() {
         } catch (error) {
             console.error('Session cleanup failed:', error);
         }
-    }, 60 * 60 * 1000); // Every hour
+    }, AUTH.SESSION.CLEANUP_INTERVAL);
+    
+    // Setup periodic rate limit cleanup
+    setInterval(() => RateLimit.cleanup(), AUTH.SESSION.CLEANUP_INTERVAL);
     
     console.log('App initialized successfully');
 }

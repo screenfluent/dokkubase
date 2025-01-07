@@ -1,12 +1,13 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import { db, sessions, settings } from '@/db';
-import { COOKIE_NAME } from '@/actions/auth';
+import { AUTH } from '@/lib/constants';
 import { eq } from 'drizzle-orm';
 
 // Check if user is logged in
-const sessionId = Astro.cookies.get(COOKIE_NAME)?.value;
+const sessionId = Astro.cookies.get(AUTH.COOKIE_NAME)?.value;
 let user: App.User | null = null;
+let sessionInfo = null;
 
 if (sessionId) {
     const session = await db.query.sessions.findFirst({
@@ -15,19 +16,26 @@ if (sessionId) {
     
     if (session) {
         user = JSON.parse(session.data) as App.User;
+        sessionInfo = {
+            id: session.id.slice(0, 8) + '...',
+            expiresAt: session.expiresAt.toLocaleString(),
+            createdAt: new Date(session.expiresAt.getTime() - AUTH.SESSION.MAX_AGE * 1000).toLocaleString()
+        };
     }
 }
 
-// If not logged in and system not configured, redirect to setup
+// If not logged in, check system configuration
 if (!user) {
     const adminExists = await db.query.settings.findFirst({
         where: eq(settings.key, 'admin_password_hash')
     });
 
+    // If system is not configured, go to setup
     if (!adminExists) {
         return Astro.redirect('/setup');
     }
     
+    // If system is configured but user not logged in, go to login
     return Astro.redirect('/auth/login');
 }
 ---
@@ -38,6 +46,17 @@ if (!user) {
             <h1>Witaj, {user.username}! 🚀</h1>
             <p>Jesteś zalogowany jako administrator.</p>
         </div>
+
+        {sessionInfo && (
+            <div class="session-info">
+                <h2>Informacje o sesji:</h2>
+                <ul>
+                    <li><strong>ID:</strong> {sessionInfo.id}</li>
+                    <li><strong>Utworzona:</strong> {sessionInfo.createdAt}</li>
+                    <li><strong>Wygasa:</strong> {sessionInfo.expiresAt}</li>
+                </ul>
+            </div>
+        )}
 
         <form action="/auth/logout" method="post">
             <button type="submit" class="logout-btn">
@@ -62,6 +81,34 @@ if (!user) {
     h1 {
         font-size: 2.5rem;
         margin-bottom: 1rem;
+    }
+
+    .session-info {
+        background: #f5f6fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .session-info h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        color: #2d3436;
+    }
+
+    .session-info ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .session-info li {
+        margin-bottom: 0.5rem;
+        color: #636e72;
+    }
+
+    .session-info strong {
+        color: #2d3436;
+        margin-right: 0.5rem;
     }
 
     .logout-btn {
