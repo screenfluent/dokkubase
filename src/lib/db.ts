@@ -55,7 +55,13 @@ export class DB {
             'SELECT data FROM sessions WHERE id = ? AND expires_at > ?'
         ).get(id, Date.now()) as { data: string } | undefined;
         
-        return row ? JSON.parse(row.data) : null;
+        if (!row) {
+            console.log(`DB: Session ${id.slice(0, 8)}... not found or expired`);
+            return null;
+        }
+        
+        console.log(`DB: Session ${id.slice(0, 8)}... retrieved successfully`);
+        return JSON.parse(row.data);
     }
 
     public setSession<T = unknown>(id: string, data: T, expiresIn: number = 24 * 60 * 60 * 1000): void {
@@ -65,10 +71,13 @@ export class DB {
             INSERT OR REPLACE INTO sessions (id, data, expires_at)
             VALUES (?, ?, ?)
         `).run(id, JSON.stringify(data), expiresAt);
+
+        console.log(`DB: Session ${id.slice(0, 8)}... stored, expires in ${expiresIn / 1000 / 60} minutes`);
     }
 
     public deleteSession(id: string): void {
-        this.db.prepare('DELETE FROM sessions WHERE id = ?').run(id);
+        const result = this.db.prepare('DELETE FROM sessions WHERE id = ?').run(id);
+        console.log(`DB: Session ${id.slice(0, 8)}... ${result.changes ? 'deleted' : 'not found'}`);
     }
 
     public cleanupSessions(): { deletedCount: number } {
@@ -77,7 +86,7 @@ export class DB {
         ).run(Date.now());
         
         if (deleted.changes > 0) {
-            console.log(`DB: Cleaned up ${deleted.changes} expired sessions`);
+            console.log(`DB: Cleaned up ${deleted.changes} expired sessions at ${new Date().toISOString()}`);
         }
 
         return { deletedCount: deleted.changes };
