@@ -22,6 +22,7 @@ if (result?.data?.success) {
 
 // Pass remaining attempts to the form
 const remainingAttempts = Astro.locals.loginError?.remainingAttempts;
+const csrfToken = Astro.locals.csrfToken;
 ---
 
 <Layout title="Login">
@@ -29,6 +30,7 @@ const remainingAttempts = Astro.locals.loginError?.remainingAttempts;
     <LoginForm 
         message={message} 
         messageType={messageType}
-        remainingAttempts={remainingAttempts} 
+        remainingAttempts={remainingAttempts}
+        csrfToken={csrfToken}
     />
 </Layout>

@@ -1,16 +1,21 @@
 ---
 import { actions } from "astro:actions";
+import { CSRF } from "@/lib/security";
 
 interface Props {
     message?: string;
     messageType?: 'error' | 'success';
     remainingAttempts?: number;
+    csrfToken: string;
 }
 
-const { message, messageType = 'error', remainingAttempts } = Astro.props;
+const { message, messageType = 'error', remainingAttempts, csrfToken } = Astro.props;
+const { formField } = CSRF.getConfig();
 ---
 
 <form method="POST" action={actions.auth.login}>
+    <input type="hidden" name={formField} value={csrfToken}>
+    
     <div>
         <label for="username">Username:</label><br/>
         <input type="text" id="username" name="username" required>

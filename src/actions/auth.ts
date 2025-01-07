@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 // Internal imports
 import { DB } from '@/lib/db';
+import { CSRF } from '@/lib/security';
 import type { AstroCookies } from 'astro';
 
 // Auth constants
@@ -48,9 +49,19 @@ export const auth = {
         accept: 'form',
         input: z.object({
             username: z.string(),
-            password: z.string()
+            password: z.string(),
+            _csrf: z.string()
         }),
-        handler: async (input: { username: string; password: string }, context: APIContext) => {
+        handler: async (input: { username: string; password: string; _csrf: string }, context: APIContext) => {
+            // Validate CSRF token
+            const storedToken = context.cookies.get(CSRF.getConfig().cookie.name)?.value || null;
+            if (!CSRF.validateToken(input._csrf, storedToken)) {
+                return {
+                    success: false,
+                    message: 'Invalid security token. Please try again.'
+                };
+            }
+
             const { username, password } = input;
 
             // Simple hardcoded auth for prototype

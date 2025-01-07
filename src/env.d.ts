@@ -30,5 +30,6 @@ declare namespace App {
             message?: string;
             remainingAttempts: number;
         };
+        csrfToken: string;
     }
 } 

@@ -5,7 +5,7 @@ import type { MiddlewareHandler, APIContext } from "astro";
 // Internal imports
 import { DB } from "@/lib/db";
 import { COOKIE_NAME } from "@/actions/auth";
-import { RateLimit } from "@/lib/rate-limit";
+import { CSRF, RateLimit } from "@/lib/security";
 
 // Types
 import type { User } from "@/actions/auth";
@@ -21,6 +21,17 @@ setInterval(() => RateLimit.cleanup(), 60 * 1000);
 // Simple auth middleware - MVP prototype
 export const onRequest: MiddlewareHandler = defineMiddleware(async (context: APIContext, next: () => Promise<Response>) => {
     console.log('Middleware: Processing request to', context.url.pathname);
+
+    // Generate CSRF token for all GET requests
+    if (context.request.method === 'GET') {
+        const token = CSRF.generateToken();
+        const config = CSRF.getConfig();
+        
+        context.cookies.set(config.cookie.name, token, config.cookie);
+        context.locals.csrfToken = token;
+        
+        console.log('CSRF: Generated new token');
+    }
 
     // Rate limiting for login attempts
     if (context.url.pathname === '/auth/login' && context.request.method === 'POST') {
